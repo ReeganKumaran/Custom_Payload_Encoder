@@ -1,8 +1,6 @@
 # Advanced Payload Encoder & Obfuscation Framework
 
-**Author:** Rahul Raval - Cybersecurity Engineering Student  
-**Purpose:** Educational red team evasion techniques demonstration  
-**Target:** College portfolio & cybersecurity job interviews
+**Purpose:** Educational red team evasion techniques demonstration
 
 ## 🎯 Overview
 
@@ -139,23 +137,12 @@ Kaspersky: 88% evasion ✅ CLEAN
 
 ## 🎓 Educational Use Cases
 
-### College Portfolio
-- Demonstrates advanced cybersecurity knowledge
-- Shows practical red team skills
-- Professional code structure and documentation
-- Real-world evasion techniques
-
-### Job Interview Preparation
-- Technical depth in offensive security
-- Understanding of detection mechanisms
-- Practical implementation skills
-- Professional reporting capabilities
-
 ### Research Applications
 - AV/EDR evasion research
 - Obfuscation technique analysis
 - Detection engine testing
 - Security tool evaluation
+- Cybersecurity education and training
 
 ## 🔬 Technical Deep Dive
 
@@ -238,24 +225,15 @@ This framework is developed for:
 
 ## 🤝 Contributing
 
-This is an educational project for portfolio demonstration. Suggestions for improvement:
+Contributions are welcome! Suggestions for improvement:
 
 1. Additional obfuscation layers
 2. New detection engine signatures
 3. Enhanced reporting features
 4. Performance optimizations
 
-## 📞 Contact
-
-**Rahul Raval**  
-Cybersecurity Engineering Student  
-Specialization: Blue Team & Red Team Operations  
-Location: India
-
-*"Building the future of cybersecurity, one payload at a time."*
-
 ---
 
 **Framework Version:** 1.0  
 **Last Updated:** 2024  
-**License:** Educational Use Only
+**License:** MIT
