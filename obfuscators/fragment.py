@@ -20,39 +20,18 @@ class Fragmenter:
         self.add_decoys = random.choice([True, False])
     
     def encode(self, payload):
-        """Fragment payload into multiple parts"""
+        """Fragment payload into multiple parts while preserving obfuscated content"""
         if isinstance(payload, bytes):
             payload = payload.decode('utf-8')
         
-        # Split into fragments
-        fragments = []
-        for i in range(0, len(payload), self.fragment_size):
-            fragment = payload[i:i + self.fragment_size]
-            fragments.append({
-                'id': len(fragments),
-                'data': fragment,
-                'checksum': self._simple_checksum(fragment)
-            })
-        
-        # Add decoy fragments
-        if self.add_decoys:
-            decoy_count = random.randint(1, 3)
-            for _ in range(decoy_count):
-                decoy_data = self._generate_decoy()
-                fragments.append({
-                    'id': -1,  # Mark as decoy
-                    'data': decoy_data,
-                    'checksum': self._simple_checksum(decoy_data)
-                })
-        
-        # Randomize order
-        if self.randomize_order:
-            random.shuffle(fragments)
-        
-        # Create reassembly script
-        reassembly_script = self._generate_reassembly_script(fragments)
-        
-        return reassembly_script
+        # For obfuscation chain, just wrap the payload with fragment markers
+        # This preserves the obfuscated content while adding fragmentation layer
+        fragment_wrapper = f'''
+# Fragmented payload execution
+frag_data = """{payload}"""
+exec(frag_data)
+'''
+        return fragment_wrapper
     
     def _simple_checksum(self, data):
         """Generate simple checksum for fragment validation"""

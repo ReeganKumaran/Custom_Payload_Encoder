@@ -49,15 +49,24 @@ class PayloadFramework:
 
     def build_chain(self, chain_type, target_os):
         """Smart chain builder based on target and vector"""
-        base_chain = self.chains.get(chain_type, self.chains['basic'])
+        base_chains = {
+            'basic': ['unicode', 'base64'],
+            'stealth': ['unicode', 'base64', 'xor', 'junk'],
+            'full_windows': ['unicode', 'base64', 'xor', 'junk', 'fragment', 'amsi'],
+            'full_linux': ['unicode', 'base64', 'xor', 'junk', 'fragment', 'ld_preload'],
+            'full': ['unicode', 'base64', 'xor', 'junk', 'fragment']
+        }
         
-        # OS-specific filtering
-        if target_os == 'windows':
-            return [c for c in base_chain if c != 'ld_preload']
-        elif target_os == 'linux':
-            return [c for c in base_chain if c != 'amsi']
+        # OS-specific full chains
+        if chain_type == 'full':
+            if target_os == 'windows':
+                return base_chains['full_windows']
+            elif target_os == 'linux':
+                return base_chains['full_linux']
+            else:  # both - use basic full without OS bypasses
+                return base_chains['full']
         
-        return base_chain
+        return base_chains.get(chain_type, base_chains['basic'])
 
     def process_payload(self, payload, chain, verbose=False):
         """Apply obfuscation chain to payload"""
@@ -192,7 +201,7 @@ Examples:
     # Find best variant
     best = max(variants, key=lambda x: x['evasion_score'])
     print(f"\n🏆 BEST: Variant {best['id']} - {best['evasion_score']}% evasion")
-    print(f"Ready for deployment: {best['payload'][:100]}...")
+    print(f"Ready for deployment: {best['payload']}")
     
     # Generate report
     if args.output:

