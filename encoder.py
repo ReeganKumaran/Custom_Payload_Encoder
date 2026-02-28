@@ -23,6 +23,13 @@ class PayloadEncoder:
             'polymorphic': self.encode_polymorphic,
             'caesar': self.encode_caesar
         }
+        self.decoders = {
+            'base64': self.decode_base64,
+            'xor': self.decode_xor,
+            'rot13': self.decode_rot13,
+            'polymorphic': self.decode_polymorphic,
+            'caesar': self.decode_caesar
+        }
         self.xor_key = 0xAA
         self.caesar_shift = 13
     
@@ -102,16 +109,107 @@ class PayloadEncoder:
         """Polymorphic encoding with random NOP insertion"""
         result = bytearray()
         nop_instructions = [0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97]
-        
+
         for byte in data:
             result.append(byte)
             # 30% chance to insert random NOP
             if random.random() < 0.3:
                 nop = random.choice(nop_instructions)
                 result.append(nop)
-        
+
         return bytes(result)
-    
+
+    # ==================== DECODERS ====================
+
+    def decode_base64(self, data, iterations=3):
+        """Multi-layer Base64 decoding (reverse of encode_base64)"""
+        result = data
+        for i in range(iterations):
+            try:
+                result = base64.b64decode(result)
+            except Exception:
+                print(f"[!] Base64 decode stopped at iteration {i+1} (invalid data)")
+                break
+        return result
+
+    def decode_xor(self, data, key=None):
+        """XOR decoding (XOR is symmetric - same operation as encode)"""
+        if key is None:
+            key = self.xor_key
+
+        if isinstance(key, int):
+            return bytes([b ^ key for b in data])
+        elif isinstance(key, str):
+            key_bytes = key.encode()
+            return bytes([data[i] ^ key_bytes[i % len(key_bytes)] for i in range(len(data))])
+        else:
+            raise ValueError("Key must be int or string")
+
+    def decode_rot13(self, data):
+        """ROT13 decoding (reverse of encode_rot13)"""
+        if isinstance(data, bytes):
+            try:
+                import codecs
+                data_str = data.decode('utf-8')
+                return codecs.encode(data_str, 'rot13').encode('utf-8')
+            except Exception:
+                return bytes([(b - 13) % 256 for b in data])
+        else:
+            import codecs
+            return codecs.encode(data, 'rot13').encode('utf-8')
+
+    def decode_caesar(self, data, shift=None):
+        """Caesar cipher decoding (reverse shift)"""
+        if shift is None:
+            shift = self.caesar_shift
+
+        result = bytearray()
+        for byte in data:
+            original = (byte - shift) % 256
+            result.append(original)
+        return bytes(result)
+
+    def decode_polymorphic(self, data):
+        """Polymorphic decoding - remove NOP instructions"""
+        nop_instructions = [0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97]
+        decoded = bytearray()
+        for byte in data:
+            if byte not in nop_instructions:
+                decoded.append(byte)
+        return bytes(decoded)
+
+    def load_encoded(self, input_file, input_format):
+        """Load encoded payload for decoding"""
+        try:
+            with open(input_file, 'rb') as f:
+                data = f.read()
+
+            if input_format == 'hex':
+                hex_str = data.decode('utf-8').strip().replace('\\x', '').replace(' ', '').replace('\n', '')
+                return binascii.unhexlify(hex_str)
+            elif input_format == 'base64':
+                return base64.b64decode(data.strip())
+            elif input_format == 'csharp':
+                content = data.decode('utf-8')
+                matches = re.findall(r'0x[0-9a-fA-F]{2}', content)
+                if matches:
+                    return bytes([int(x, 16) for x in matches])
+                else:
+                    raise ValueError("No hex bytes found in C# format")
+            elif input_format == 'python':
+                content = data.decode('utf-8')
+                match = re.search(r'\[([0-9, ]+)\]', content)
+                if match:
+                    return bytes([int(x.strip()) for x in match.group(1).split(',')])
+                else:
+                    raise ValueError("No Python list found")
+            elif input_format in ('raw', 'binary'):
+                return data
+            else:
+                raise ValueError(f"Unsupported input format: {input_format}")
+        except Exception as e:
+            raise Exception(f"Failed to load encoded payload: {e}")
+
     def generate_decoder_stub(self, algorithm, encoded_data, key=None):
         """Generate decoder stub for testing execution"""
         if algorithm == 'xor':
@@ -485,24 +583,33 @@ execute_shellcode(payload)
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Advanced Payload Encoder",
+        description="Advanced Payload Encoder/Decoder",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
+Examples (Encode):
   python encoder.py -i payload.bin -o encoded.txt -e xor --key 0xAA
   python encoder.py -i shellcode.hex -f hex -e base64 -o encoded.txt
   python encoder.py -i payload.cs -f csharp -e polymorphic -o encoded.txt
   python encoder.py -i payload.bin -e xor --key "secret" --decoder
+
+Examples (Decode):
+  python encoder.py -d -i encoded.txt -o decoded.bin -e xor --key 0xAA -f hex
+  python encoder.py -d -i encoded.txt -o decoded.bin -e base64 -f hex --iterations 3
+  python encoder.py -d -i encoded.txt -o decoded.bin -e caesar --shift 13 -f hex
+  python encoder.py -d -i encoded.txt -o decoded.bin -e rot13 -f hex
+  python encoder.py -d -i encoded.txt -o decoded.bin -e polymorphic -f hex
         """
     )
-    
-    parser.add_argument('-i', '--input', required=True, help='Input payload file')
-    parser.add_argument('-o', '--output', required=True, help='Output encoded file')
-    parser.add_argument('-e', '--encoder', required=True, 
+
+    parser.add_argument('-d', '--decode', action='store_true',
+                       help='Decode mode (reverse the encoding process)')
+    parser.add_argument('-i', '--input', required=True, help='Input file')
+    parser.add_argument('-o', '--output', required=True, help='Output file')
+    parser.add_argument('-e', '--encoder', required=True,
                        choices=['base64', 'xor', 'rot13', 'polymorphic', 'caesar'],
-                       help='Encoding algorithm')
+                       help='Encoding/decoding algorithm')
     parser.add_argument('-f', '--format', default='binary',
-                       choices=['raw', 'hex', 'csharp', 'binary'],
+                       choices=['raw', 'hex', 'csharp', 'binary', 'base64', 'python'],
                        help='Input format (default: binary)')
     parser.add_argument('--key', help='Encoding key (for XOR: hex value like 0xAA or string)')
     parser.add_argument('--shift', type=int, default=13, help='Caesar cipher shift value')
@@ -510,54 +617,87 @@ Examples:
     parser.add_argument('--output-format', default='hex',
                        choices=['hex', 'csharp', 'python', 'base64', 'raw'],
                        help='Output format (default: hex)')
-    parser.add_argument('--decoder', action='store_true', help='Generate decoder stub')
-    
+    parser.add_argument('--decoder', action='store_true', help='Generate decoder stub (encode mode only)')
+
     args = parser.parse_args()
-    
+
     try:
         encoder = PayloadEncoder()
-        
+
         # Set parameters
         if args.key:
             if args.key.startswith('0x'):
                 encoder.xor_key = int(args.key, 16)
             else:
                 encoder.xor_key = args.key
-        
+
         encoder.caesar_shift = args.shift
-        
-        # Load payload
-        print(f"[+] Loading payload from {args.input} (format: {args.format})")
-        payload = encoder.load_payload(args.input, args.format)
-        print(f"[+] Loaded {len(payload)} bytes")
-        
-        # Encode payload
-        print(f"[+] Encoding with {args.encoder} algorithm")
-        if args.encoder == 'base64':
-            encoded = encoder.encode_base64(payload, args.iterations)
-        elif args.encoder == 'xor':
-            encoded = encoder.encode_xor(payload, encoder.xor_key)
-        elif args.encoder == 'caesar':
-            encoded = encoder.encode_caesar(payload, args.shift)
+
+        if args.decode:
+            # ==================== DECODE MODE ====================
+            print(f"[+] DECODE MODE")
+            print(f"[+] Loading encoded payload from {args.input} (format: {args.format})")
+            payload = encoder.load_encoded(args.input, args.format)
+            print(f"[+] Loaded {len(payload)} bytes")
+
+            print(f"[+] Decoding with {args.encoder} algorithm")
+            if args.encoder == 'base64':
+                decoded = encoder.decode_base64(payload, args.iterations)
+            elif args.encoder == 'xor':
+                decoded = encoder.decode_xor(payload, encoder.xor_key)
+            elif args.encoder == 'caesar':
+                decoded = encoder.decode_caesar(payload, args.shift)
+            else:
+                decoded = encoder.decoders[args.encoder](payload)
+
+            print(f"[+] Decoded to {len(decoded)} bytes")
+
+            # Save decoded payload
+            encoder.save_output(decoded, args.output, args.output_format)
+            print(f"[+] Saved decoded payload to {args.output}")
+
+            # Show preview of decoded content
+            try:
+                preview = decoded.decode('utf-8')[:200]
+                print(f"[+] Preview: {preview}")
+            except Exception:
+                print(f"[+] Preview (hex): {binascii.hexlify(decoded[:50]).decode()}...")
+
+            print("[+] Decoding complete!")
+
         else:
-            encoded = encoder.encoders[args.encoder](payload)
-        
-        print(f"[+] Encoded to {len(encoded)} bytes")
-        
-        # Save encoded payload
-        encoder.save_output(encoded, args.output, args.output_format)
-        print(f"[+] Saved encoded payload to {args.output}")
-        
-        # Generate decoder stub if requested
-        if args.decoder:
-            decoder_file = args.output.replace('.txt', '_decoder.py')
-            decoder_stub = encoder.generate_decoder_stub(args.encoder, encoded, encoder.xor_key)
-            with open(decoder_file, 'w') as f:
-                f.write(decoder_stub)
-            print(f"[+] Generated decoder stub: {decoder_file}")
-        
-        print("[+] Encoding complete!")
-        
+            # ==================== ENCODE MODE ====================
+            print(f"[+] ENCODE MODE")
+            print(f"[+] Loading payload from {args.input} (format: {args.format})")
+            payload = encoder.load_payload(args.input, args.format)
+            print(f"[+] Loaded {len(payload)} bytes")
+
+            print(f"[+] Encoding with {args.encoder} algorithm")
+            if args.encoder == 'base64':
+                encoded = encoder.encode_base64(payload, args.iterations)
+            elif args.encoder == 'xor':
+                encoded = encoder.encode_xor(payload, encoder.xor_key)
+            elif args.encoder == 'caesar':
+                encoded = encoder.encode_caesar(payload, args.shift)
+            else:
+                encoded = encoder.encoders[args.encoder](payload)
+
+            print(f"[+] Encoded to {len(encoded)} bytes")
+
+            # Save encoded payload
+            encoder.save_output(encoded, args.output, args.output_format)
+            print(f"[+] Saved encoded payload to {args.output}")
+
+            # Generate decoder stub if requested
+            if args.decoder:
+                decoder_file = args.output.replace('.txt', '_decoder.py')
+                decoder_stub = encoder.generate_decoder_stub(args.encoder, encoded, encoder.xor_key)
+                with open(decoder_file, 'w') as f:
+                    f.write(decoder_stub)
+                print(f"[+] Generated decoder stub: {decoder_file}")
+
+            print("[+] Encoding complete!")
+
     except Exception as e:
         print(f"[-] Error: {e}")
         sys.exit(1)
